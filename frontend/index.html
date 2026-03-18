@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Numerar Postes - Ecossistema PRO</title>
+    <title>Numerar Postes - Ecossistema</title>
     <!-- Tailwind via CDN para recriar o visual moderno rapidamente sem build extra -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
@@ -61,41 +61,44 @@
 <body class="p-4 md:p-6 lg:p-8 flex flex-col items-center min-h-screen text-slate-800">
 
     <!-- Cabeçalho e Controles Unificados -->
-    <header
-        class="w-full max-w-5xl bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-wrap lg:flex-nowrap justify-between items-center gap-4 mb-4">
+    <header class="w-full max-w-5xl bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-wrap lg:flex-nowrap justify-between items-center gap-4 mb-4 relative">
 
-        <!-- Logo/Título -->
-        <div class="flex flex-shrink-0 items-center gap-3">
-            <div class="bg-amber-500 text-white p-2 rounded-lg">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                    class="lucide lucide-file-text">
-                    <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
-                    <path d="M14 2v4a2 2 0 0 0 2 2h4" />
-                    <path d="M10 9H8" />
-                    <path d="M16 13H8" />
-                    <path d="M16 17H8" />
-                </svg>
+        <!-- Logo e Novo Projeto (Esquerda) -->
+        <div class="flex flex-shrink-0 items-center justify-between w-full lg:w-auto gap-4 lg:gap-6 z-10">
+            <div class="flex items-center gap-3">
+                <div class="bg-amber-500 text-white p-2 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="lucide lucide-file-text">
+                        <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+                        <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+                        <path d="M10 9H8" />
+                        <path d="M16 13H8" />
+                        <path d="M16 17H8" />
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="font-black text-xl text-slate-800 uppercase tracking-tight leading-none">Numerar Postes</h1>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ecossistema</span>
+                </div>
             </div>
-            <div>
-                <h1 class="font-black text-xl text-slate-800 uppercase tracking-tight leading-none">Numerar Postes</h1>
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ecossistema</span>
-            </div>
-        </div>
 
-        <!-- Controles Centrais (A antiga linha 2) -->
-        <div class="flex flex-wrap items-center justify-end gap-2 md:gap-3 flex-1">
             <button id="btn-new"
-                class="text-[11px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg transition-colors border border-slate-200 shadow-sm h-[36px] flex items-center">
+                class="text-[11px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg transition-colors border border-slate-200 shadow-sm h-[36px] flex items-center shrink-0">
                 Novo Projeto
             </button>
+        </div>
 
-            <!-- Input File mais destacado -->
-            <div class="relative overflow-hidden bg-white border-2 border-amber-300 rounded-lg shadow-sm hover:border-amber-400 transition-all flex items-center h-[36px]">
+        <!-- Input File Centralizado Absoluto (Telas Grandes) / Relativo (Telas Menores) -->
+        <div class="flex lg:absolute lg:inset-x-0 w-full lg:w-auto justify-center order-3 lg:order-none mt-2 lg:mt-0 z-0 pointer-events-none">
+            <div class="relative overflow-hidden bg-white border-2 border-amber-300 rounded-lg shadow-sm hover:border-amber-400 transition-all flex items-center h-[36px] w-full max-w-[320px] pointer-events-auto mx-auto">
                 <input type="file" id="file-input" accept="application/pdf"
                     class="block w-full text-[11px] font-medium text-slate-600 file:mr-3 file:py-2 file:px-4 file:h-[36px] file:rounded-l-sm file:border-0 file:border-r file:border-amber-200 file:text-[11px] file:font-black file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100 cursor-pointer" />
             </div>
+        </div>
 
+        <!-- Demais Controles (Direita) -->
+        <div class="flex flex-wrap items-center justify-center lg:justify-end gap-2 flex-shrink-0 order-2 lg:order-none w-full lg:w-auto z-10">
             <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg p-1 shadow-inner h-[36px]">
                 <button id="prev-page"
                     class="px-2 py-1 text-slate-600 hover:bg-white hover:shadow rounded text-[11px] font-bold disabled:opacity-50 transition-all h-full flex items-center"
@@ -107,15 +110,15 @@
             </div>
 
             <button id="download-btn"
-                class="bg-amber-500 hover:bg-amber-600 text-white font-bold text-[11px] px-4 py-1.5 rounded-lg shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 h-[36px]"
+                class="bg-amber-500 hover:bg-amber-600 text-white font-bold text-[11px] px-3 py-1.5 rounded-lg shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 h-[36px]"
                 disabled>
                 Baixar PDF
             </button>
             
-            <div class="w-px h-6 bg-slate-200 mx-1 hidden lg:block"></div> <!-- Separador vertical -->
+            <div class="w-px h-6 bg-slate-200 mx-0.5 hidden md:block"></div>
 
             <button id="btn-back"
-                class="flex items-center gap-2 text-[11px] font-bold text-slate-500 hover:text-slate-800 transition-colors bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm h-[36px]">
+                class="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 hover:text-slate-800 transition-colors bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm h-[36px]">
                 <span>◀</span> Voltar
             </button>
         </div>
