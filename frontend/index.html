@@ -85,38 +85,41 @@
         </div>
 
         <!-- Controles Centrais (A antiga linha 2) -->
-        <div class="flex flex-wrap items-center gap-2 md:gap-3 flex-1 lg:justify-center">
+        <div class="flex flex-wrap items-center justify-end gap-2 md:gap-3 flex-1">
             <button id="btn-new"
-                class="text-[11px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg transition-colors border border-slate-200 shadow-sm">Novo
-                Projeto</button>
+                class="text-[11px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg transition-colors border border-slate-200 shadow-sm h-[36px] flex items-center">
+                Novo Projeto
+            </button>
 
-            <div class="relative overflow-hidden">
+            <!-- Input File mais destacado -->
+            <div class="relative overflow-hidden bg-white border-2 border-amber-300 rounded-lg shadow-sm hover:border-amber-400 transition-all flex items-center h-[36px]">
                 <input type="file" id="file-input" accept="application/pdf"
-                    class="block w-full text-[11px] text-slate-500 file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100 cursor-pointer min-w-[170px]" />
+                    class="block w-full text-[11px] font-medium text-slate-600 file:mr-3 file:py-2 file:px-4 file:h-[36px] file:rounded-l-sm file:border-0 file:border-r file:border-amber-200 file:text-[11px] file:font-black file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100 cursor-pointer" />
             </div>
 
-            <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg p-1 shadow-inner">
+            <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg p-1 shadow-inner h-[36px]">
                 <button id="prev-page"
-                    class="px-2 py-1 text-slate-600 hover:bg-white hover:shadow rounded text-[11px] font-bold disabled:opacity-50 transition-all"
+                    class="px-2 py-1 text-slate-600 hover:bg-white hover:shadow rounded text-[11px] font-bold disabled:opacity-50 transition-all h-full flex items-center"
                     disabled>◀ Ant</button>
-                <span id="page-num" class="text-[11px] font-bold text-slate-500 w-16 text-center">Pág: 0 / 0</span>
+                <span id="page-num" class="text-[11px] font-bold text-slate-500 w-16 text-center flex items-center justify-center h-full">Pág: 0 / 0</span>
                 <button id="next-page"
-                    class="px-2 py-1 text-slate-600 hover:bg-white hover:shadow rounded text-[11px] font-bold disabled:opacity-50 transition-all"
+                    class="px-2 py-1 text-slate-600 hover:bg-white hover:shadow rounded text-[11px] font-bold disabled:opacity-50 transition-all h-full flex items-center"
                     disabled>Próx ▶</button>
             </div>
 
             <button id="download-btn"
-                class="bg-amber-500 hover:bg-amber-600 text-white font-bold text-[11px] px-4 py-2 rounded-lg shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                class="bg-amber-500 hover:bg-amber-600 text-white font-bold text-[11px] px-4 py-1.5 rounded-lg shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 h-[36px]"
                 disabled>
                 Baixar PDF
             </button>
-        </div>
+            
+            <div class="w-px h-6 bg-slate-200 mx-1 hidden lg:block"></div> <!-- Separador vertical -->
 
-        <!-- Botão Voltar -->
-        <button id="btn-back"
-            class="flex flex-shrink-0 items-center gap-2 text-[11px] font-bold text-slate-500 hover:text-slate-800 transition-colors bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-lg">
-            <span>◀</span> Voltar
-        </button>
+            <button id="btn-back"
+                class="flex items-center gap-2 text-[11px] font-bold text-slate-500 hover:text-slate-800 transition-colors bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm h-[36px]">
+                <span>◀</span> Voltar
+            </button>
+        </div>
     </header>
 
     <!-- Barra de Indicadores (Resumo) -->
