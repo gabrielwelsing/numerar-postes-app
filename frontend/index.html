@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Numerar Postes - Ecossistema PRO</title>
+    <!-- Tailwind via CDN para recriar o visual moderno rapidamente sem build extra -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+            background-color: #f8fafc;
+            /* bg-slate-50 */
+        }
+
+        #pdf-wrapper {
+            position: relative;
+            background-color: #f1f5f9;
+            /* bg-slate-100 placeholder */
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            margin: 0 auto;
+        }
+
+        #pdf-canvas {
+            display: block;
+        }
+
+        #overlay-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            cursor: crosshair;
+        }
+
+        /* Custom scrollbar para ficar elegante */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+
+<body class="p-4 md:p-6 lg:p-8 flex flex-col items-center min-h-screen text-slate-800">
+
+    <!-- Cabeçalho e Controles Unificados -->
+    <header
+        class="w-full max-w-5xl bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-wrap lg:flex-nowrap justify-between items-center gap-4 mb-4">
+
+        <!-- Logo/Título -->
+        <div class="flex flex-shrink-0 items-center gap-3">
+            <div class="bg-amber-500 text-white p-2 rounded-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    class="lucide lucide-file-text">
+                    <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+                    <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+                    <path d="M10 9H8" />
+                    <path d="M16 13H8" />
+                    <path d="M16 17H8" />
+                </svg>
+            </div>
+            <div>
+                <h1 class="font-black text-xl text-slate-800 uppercase tracking-tight leading-none">Numerar Postes</h1>
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ecossistema Pro</span>
+            </div>
+        </div>
+
+        <!-- Controles Centrais (A antiga linha 2) -->
+        <div class="flex flex-wrap items-center gap-2 md:gap-3 flex-1 lg:justify-center">
+            <button id="btn-new"
+                class="text-[11px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg transition-colors border border-slate-200 shadow-sm">Novo
+                Projeto</button>
+
+            <div class="relative overflow-hidden">
+                <input type="file" id="file-input" accept="application/pdf"
+                    class="block w-full text-[11px] text-slate-500 file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100 cursor-pointer min-w-[170px]" />
+            </div>
+
+            <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg p-1 shadow-inner">
+                <button id="prev-page"
+                    class="px-2 py-1 text-slate-600 hover:bg-white hover:shadow rounded text-[11px] font-bold disabled:opacity-50 transition-all"
+                    disabled>◀ Ant</button>
+                <span id="page-num" class="text-[11px] font-bold text-slate-500 w-16 text-center">Pág: 0 / 0</span>
+                <button id="next-page"
+                    class="px-2 py-1 text-slate-600 hover:bg-white hover:shadow rounded text-[11px] font-bold disabled:opacity-50 transition-all"
+                    disabled>Próx ▶</button>
+            </div>
+
+            <button id="download-btn"
+                class="bg-amber-500 hover:bg-amber-600 text-white font-bold text-[11px] px-4 py-2 rounded-lg shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                disabled>
+                Baixar PDF
+            </button>
+        </div>
+
+        <!-- Botão Voltar -->
+        <button id="btn-back"
+            class="flex flex-shrink-0 items-center gap-2 text-[11px] font-bold text-slate-500 hover:text-slate-800 transition-colors bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-lg">
+            <span>◀</span> Voltar
+        </button>
+    </header>
+
+    <!-- Barra de Indicadores (Resumo) -->
+    <div class="w-full max-w-5xl grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+        <div class="bg-white border-2 border-emerald-100 rounded-xl p-3 flex items-center shadow-sm">
+            <div class="bg-emerald-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-black text-xs mr-3"
+                id="count-installed">0</div>
+            <div>
+                <p class="text-[9px] font-bold text-emerald-600 uppercase tracking-wider mb-0.5">Qtd. Postes (Botão Esq)
+                </p>
+                <div class="flex items-baseline gap-1.5">
+                    <span class="text-[10px] text-slate-500 font-medium">Instalado =</span>
+                    <span class="text-base font-black text-slate-800 leading-none" id="val-installed">0,00 US</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white border-2 border-orange-100 rounded-xl p-3 flex items-center shadow-sm">
+            <div class="bg-orange-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-black text-xs mr-3"
+                id="count-modified">0</div>
+            <div>
+                <p class="text-[9px] font-bold text-orange-600 uppercase tracking-wider mb-0.5">Qtd. Postes (Botão Dir)
+                </p>
+                <div class="flex items-baseline gap-1.5">
+                    <span class="text-[10px] text-slate-500 font-medium">Modificado =</span>
+                    <span class="text-base font-black text-slate-800 leading-none" id="val-modified">0,00 US</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-slate-900 border-2 border-slate-800 rounded-xl p-3 flex items-center shadow-md">
+            <div class="bg-white text-slate-900 rounded-full w-8 h-8 flex items-center justify-center font-black text-xs mr-3"
+                id="count-total">0</div>
+            <div>
+                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Total Geral
+                    (Ctrl+CLick=Desfazer)</p>
+                <div class="flex items-baseline gap-1.5">
+                    <span class="text-[10px] text-slate-400 font-medium">Soma Total =</span>
+                    <span class="text-base font-black text-white leading-none" id="val-total">0,00 US</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Área de Visualização do PDF -->
+    <div id="pdf-wrapper">
+        <canvas id="pdf-canvas"></canvas>
+        <canvas id="overlay-canvas"></canvas>
+    </div>
+
+    <script>
+        // Configurar o Worker do PDF.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+        let pdfDoc = null;
+        let pageNum = 1;
+        let pageRendering = false;
+        let pageNumPending = null;
+        let originalPdfBytes = null;
+
+        // Cada ponto: { page, pdfX, pdfY, label, type: 'installed'|'modified' }
+        let points = [];
+        let poleCounter = 1;
+
+        const canvas = document.getElementById('pdf-canvas');
+        const ctx = canvas.getContext('2d');
+        const overlayCanvas = document.getElementById('overlay-canvas');
+        const overlayCtx = overlayCanvas.getContext('2d');
+        let currentViewport = null;
+
+        const fileInput = document.getElementById('file-input');
+        const prevBtn = document.getElementById('prev-page');
+        const nextBtn = document.getElementById('next-page');
+        const downloadBtn = document.getElementById('download-btn');
+        const pageNumSpan = document.getElementById('page-num');
+        const btnBack = document.getElementById('btn-back');
+        const btnNew = document.getElementById('btn-new');
+
+        // Elementos de resumo
+        const countInstalled = document.getElementById('count-installed');
+        const countModified = document.getElementById('count-modified');
+        const countTotal = document.getElementById('count-total');
+        const valInstalled = document.getElementById('val-installed');
+        const valModified = document.getElementById('val-modified');
+        const valTotal = document.getElementById('val-total');
+
+        // ---- Atualiza barra de resumo ----
+        function updateSummary() {
+            const installed = points.filter(p => p.type === 'installed').length;
+            const modified = points.filter(p => p.type === 'modified').length;
+            const total = installed + modified;
+            const vInst = installed * 1;
+            const vMod = modified * 1.7;
+            const vTot = vInst + vMod;
+
+            countInstalled.textContent = installed;
+            countModified.textContent = modified;
+            countTotal.textContent = total;
+            valInstalled.textContent = vInst.toFixed(2).replace('.', ',') + ' US';
+            valModified.textContent = vMod.toFixed(2).replace('.', ',') + ' US';
+            valTotal.textContent = vTot.toFixed(2).replace('.', ',') + ' US';
+        }
+
+        // ---- Novos Botoes ----
+        btnBack.addEventListener('click', () => {
+            window.location.href = '/hub';
+        });
+
+        btnNew.addEventListener('click', () => {
+            if (points.length > 0) {
+                if (!confirm('Deseja iniciar um novo projeto? Todos os pontos marcados serão perdidos.')) return;
+            }
+
+            // Resetar estado
+            pdfDoc = null;
+            pageNum = 1;
+            points = [];
+            poleCounter = 1;
+            originalPdfBytes = null;
+            fileInput.value = '';
+
+            // Limpar canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+            canvas.width = 0;
+            canvas.height = 0;
+            overlayCanvas.width = 0;
+            overlayCanvas.height = 0;
+
+            // Atualizar UI
+            updateSummary();
+            pageNumSpan.textContent = `Pág: 0 / 0`;
+            prevBtn.disabled = true;
+            nextBtn.disabled = true;
+            downloadBtn.disabled = true;
+        });
+
+        // ---- Upload de arquivo ----
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file || file.type !== 'application/pdf') {
+                alert('Por favor, selecione um arquivo PDF válido.');
+                return;
+            }
+            const fileReader = new FileReader();
+            fileReader.onload = function () {
+                const buffer = this.result;
+                originalPdfBytes = buffer.slice(0);
+                const typedarray = new Uint8Array(buffer);
+
+                points = [];
+                poleCounter = 1;
+                pageNum = 1;
+                updateSummary();
+
+                pdfjsLib.getDocument(typedarray).promise.then(pdf => {
+                    pdfDoc = pdf;
+                    pageNumSpan.textContent = `Pág: ${pageNum} / ${pdfDoc.numPages}`;
+                    prevBtn.disabled = false;
+                    nextBtn.disabled = false;
+                    downloadBtn.disabled = false;
+                    renderPage(pageNum);
+                });
+            };
+            fileReader.readAsArrayBuffer(file);
+        });
+
+        // ---- Renderização ----
+        function renderPage(num) {
+            pageRendering = true;
+            pdfDoc.getPage(num).then(page => {
+                const scale = 1.5;
+                const viewport = page.getViewport({ scale });
+                currentViewport = viewport;
+
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                overlayCanvas.height = viewport.height;
+                overlayCanvas.width = viewport.width;
+
+                const renderTask = page.render({ canvasContext: ctx, viewport });
+                renderTask.promise.then(() => {
+                    pageRendering = false;
+                    drawOverlay();
+                    if (pageNumPending !== null) {
+                        renderPage(pageNumPending);
+                        pageNumPending = null;
+                    }
+                });
+            });
+            pageNumSpan.textContent = `Pág: ${num} / ${pdfDoc.numPages}`;
+        }
+
+        function queueRenderPage(num) {
+            if (pageRendering) { pageNumPending = num; } else { renderPage(num); }
+        }
+
+        prevBtn.addEventListener('click', () => { if (pageNum <= 1) return; pageNum--; queueRenderPage(pageNum); });
+        nextBtn.addEventListener('click', () => { if (pageNum >= pdfDoc.numPages) return; pageNum++; queueRenderPage(pageNum); });
+
+        // ---- Desenho do Overlay com caixas coloridas ----
+        function drawOverlay() {
+            overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+            overlayCtx.font = "bold 13px Inter, sans-serif";
+            overlayCtx.textBaseline = "middle";
+
+            points.forEach(pt => {
+                if (pt.page !== pageNum) return;
+
+                const sc = currentViewport.convertToViewportPoint(pt.pdfX, pt.pdfY);
+                const x = sc[0];
+                const y = sc[1];
+                const text = pt.label;
+                const textW = overlayCtx.measureText(text).width;
+
+                const padX = 5, padY = 4;
+                const boxW = textW + padX * 2;
+                const boxH = 20; // Um pouco maior no novo visual
+
+                // Cor da caixa: verde para instalado, laranja para modificado
+                overlayCtx.fillStyle = pt.type === 'installed' ? 'rgba(16, 185, 129, 0.95)' : 'rgba(249, 115, 22, 0.95)'; // Tailwind colors
+
+                overlayCtx.beginPath();
+                overlayCtx.roundRect(x, y - boxH, boxW, boxH, 4); // Bordas arredondadas
+                overlayCtx.fill();
+
+                // Texto branco dentro da caixa
+                overlayCtx.fillStyle = '#ffffff';
+                overlayCtx.fillText(text, x + padX, y - boxH / 2);
+            });
+        }
+
+        // ---- Interação com o Mouse ----
+
+        // Clique Esquerdo: Instalado (verde) OU Ctrl+Esq = Desfazer
+        overlayCanvas.addEventListener('click', (e) => {
+            if (!pdfDoc || !currentViewport) return;
+
+            // Ctrl+Click = Desfazer
+            if (e.ctrlKey || e.metaKey) {
+                if (points.length === 0) return;
+                points.pop();
+                poleCounter = points.length === 0 ? 1 : Math.max(...points.map(p => parseInt(p.label.replace('P', '')))) + 1;
+                drawOverlay();
+                updateSummary();
+                return;
+            }
+
+            const rect = overlayCanvas.getBoundingClientRect();
+            const pdfCoords = currentViewport.convertToPdfPoint(e.clientX - rect.left, e.clientY - rect.top);
+
+            points.push({
+                page: pageNum,
+                pdfX: pdfCoords[0],
+                pdfY: pdfCoords[1],
+                label: `P${poleCounter}`,
+                type: 'installed'
+            });
+            poleCounter++;
+            drawOverlay();
+            updateSummary();
+        });
+
+        // Clique Direito: Modificado (laranja)
+        overlayCanvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            if (!pdfDoc || !currentViewport) return;
+
+            const rect = overlayCanvas.getBoundingClientRect();
+            const pdfCoords = currentViewport.convertToPdfPoint(e.clientX - rect.left, e.clientY - rect.top);
+
+            points.push({
+                page: pageNum,
+                pdfX: pdfCoords[0],
+                pdfY: pdfCoords[1],
+                label: `P${poleCounter}`,
+                type: 'modified'
+            });
+            poleCounter++;
+            drawOverlay();
+            updateSummary();
+        });
+
+        // ---- Exportação PDF (saída INALTERADA — Helvetica 7 preto) ----
+        downloadBtn.addEventListener('click', async () => {
+            if (!originalPdfBytes || points.length === 0) {
+                alert("Nenhuma marcação foi feita no documento ainda.");
+                return;
+            }
+
+            downloadBtn.disabled = true;
+            const originalText = downloadBtn.innerHTML;
+            downloadBtn.innerHTML = "Processando arquivo...";
+
+            try {
+                const pdfLibDoc = await PDFLib.PDFDocument.load(originalPdfBytes, { ignoreEncryption: true });
+                const helveticaFont = await pdfLibDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+                const rgb = PDFLib.rgb;
+                const pages = pdfLibDoc.getPages();
+
+                points.forEach(pt => {
+                    const targetPage = pages[pt.page - 1];
+                    targetPage.drawText(pt.label, {
+                        x: pt.pdfX + 2,
+                        y: pt.pdfY + 2,
+                        size: 7,
+                        font: helveticaFont,
+                        color: rgb(0, 0, 0)
+                    });
+                });
+
+                const modifiedPdfBytes = await pdfLibDoc.save({ updateFieldAppearances: false });
+
+                const blob = new Blob([modifiedPdfBytes], { type: "application/pdf" });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = "Projeto_Postes_Contados.pdf";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+            } catch (err) {
+                console.error("Erro interno ao codificar o PDF:", err);
+                alert("Erro ao processar o PDF:\n" + (err && err.message ? err.message : String(err)));
+            } finally {
+                downloadBtn.innerHTML = originalText;
+                downloadBtn.disabled = false;
+            }
+        });
+
+    </script>
+    <!-- Script de Teste do Novo Backend -->
+    <script>
+        // Quando configurar no Railway, substitua pela URL gerada para o Backend
+        const BACKEND_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:3000' 
+            : 'COLOQUE_AQUI_A_URL_DO_SEU_BACKEND_NO_RAILWAY'; // Ex: https://api-numerar.up.railway.app
+
+        async function testarBackend() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/health`);
+                const data = await response.json();
+                console.log('✅ Conexão com Backend Bem-Sucedida:', data);
+            } catch (err) {
+                console.error('❌ Erro na Conexão com Backend (Pode ser CORS ou a API está offline):', err);
+            }
+        }
+        
+        window.addEventListener('load', testarBackend);
+    </script>
+</body>
+
+</html>
