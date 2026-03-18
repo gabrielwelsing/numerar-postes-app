@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Numerar Postes - Ecossistema</title>
+    <title>Numerar Postes - Ecossistema PRO</title>
     <!-- Tailwind via CDN para recriar o visual moderno rapidamente sem build extra -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
@@ -417,10 +417,107 @@
             }
 
             const rect = overlayCanvas.getBoundingClientRect();
-            const pdfCoords = currentViewport.convertToPdfPoint(e.clientX - rect.left, e.clientY - top); // Oops top variable ?? wait
-            /* I didn't change this, but in original script it was: e.clientY - rect.top
-              Wait! Did I mess it up or was it always e.clientY - rect.top?
-              Looking at view_file, line 380: const pdfCoords = currentViewport.convertToPdfPoint(e.clientX - rect.left, e.clientY - rect.top);
-            */ 
-            // Ah wait I didn't replace that block. Let me verify the code I pushed.
-            // Oh I see in the content payload I wrote `e.clientY - rect.top` which is correct, my code has `rect.top`.
+            const pdfCoords = currentViewport.convertToPdfPoint(e.clientX - rect.left, e.clientY - rect.top);
+
+            points.push({
+                page: pageNum,
+                pdfX: pdfCoords[0],
+                pdfY: pdfCoords[1],
+                label: `P${poleCounter}`,
+                type: 'installed'
+            });
+            poleCounter++;
+            drawOverlay();
+            updateSummary();
+        });
+
+        // Clique Direito: Modificado (laranja)
+        overlayCanvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            if (!pdfDoc || !currentViewport) return;
+
+            const rect = overlayCanvas.getBoundingClientRect();
+            const pdfCoords = currentViewport.convertToPdfPoint(e.clientX - rect.left, e.clientY - rect.top);
+
+            points.push({
+                page: pageNum,
+                pdfX: pdfCoords[0],
+                pdfY: pdfCoords[1],
+                label: `P${poleCounter}`,
+                type: 'modified'
+            });
+            poleCounter++;
+            drawOverlay();
+            updateSummary();
+        });
+
+        // ---- Exportação PDF (saída INALTERADA — Helvetica 7 preto) ----
+        downloadBtn.addEventListener('click', async () => {
+            if (!originalPdfBytes || points.length === 0) {
+                alert("Nenhuma marcação foi feita no documento ainda.");
+                return;
+            }
+
+            downloadBtn.disabled = true;
+            const originalText = downloadBtn.innerHTML;
+            downloadBtn.innerHTML = "Processando arquivo...";
+
+            try {
+                const pdfLibDoc = await PDFLib.PDFDocument.load(originalPdfBytes, { ignoreEncryption: true });
+                const helveticaFont = await pdfLibDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+                const rgb = PDFLib.rgb;
+                const pages = pdfLibDoc.getPages();
+
+                points.forEach(pt => {
+                    const targetPage = pages[pt.page - 1];
+                    targetPage.drawText(pt.label, {
+                        x: pt.pdfX + 2,
+                        y: pt.pdfY + 2,
+                        size: 7,
+                        font: helveticaFont,
+                        color: rgb(0, 0, 0)
+                    });
+                });
+
+                const modifiedPdfBytes = await pdfLibDoc.save({ updateFieldAppearances: false });
+
+                const blob = new Blob([modifiedPdfBytes], { type: "application/pdf" });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = "Projeto_Postes_Contados.pdf";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+            } catch (err) {
+                console.error("Erro interno ao codificar o PDF:", err);
+                alert("Erro ao processar o PDF:\n" + (err && err.message ? err.message : String(err)));
+            } finally {
+                downloadBtn.innerHTML = originalText;
+                downloadBtn.disabled = false;
+            }
+        });
+
+    </script>
+    <!-- Script de Teste do Novo Backend -->
+    <script>
+        // Quando configurar no Railway, substitua pela URL gerada para o Backend
+        const BACKEND_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:3000' 
+            : 'https://numerar-postes-app-production.up.railway.app'; // URL real do seu backend no Railway
+
+        async function testarBackend() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/health`);
+                const data = await response.json();
+                console.log('✅ Conexão com Backend Bem-Sucedida:', data);
+            } catch (err) {
+                console.error('❌ Erro na Conexão com Backend (Pode ser CORS ou a API está offline):', err);
+            }
+        }
+        
+        window.addEventListener('load', testarBackend);
+    </script>
+</body>
+
+</html>
