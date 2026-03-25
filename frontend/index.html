@@ -5,7 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Numerar Postes - Ecossistema PRO</title>
-    <!-- Tailwind via CDN para recriar o visual moderno rapidamente sem build extra -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
@@ -14,13 +13,11 @@
         body {
             font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
             background-color: #f8fafc;
-            /* bg-slate-50 */
         }
 
         #pdf-wrapper {
             position: relative;
             background-color: #f1f5f9;
-            /* bg-slate-100 placeholder */
             border-radius: 0.5rem;
             overflow: hidden;
             margin: 0 auto;
@@ -37,33 +34,53 @@
             cursor: crosshair;
         }
 
-        /* Custom scrollbar para ficar elegante */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #f1f5f9;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
 
 <body class="p-4 md:p-6 lg:p-8 flex flex-col items-center min-h-screen text-slate-800">
 
+    <!-- CATRACA: roda antes de renderizar qualquer coisa -->
+    <script>
+        (async function () {
+            const HUB_URL = 'https://hub-sistemas-production.up.railway.app';
+            const BACKEND = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                ? 'http://localhost:3000'
+                : 'https://frontendnumerarposte-production.up.railway.app';
+
+            // 1. Pega token da URL se vier do HUB
+            const params = new URLSearchParams(window.location.search);
+            const tokenFromUrl = params.get('token');
+            if (tokenFromUrl) {
+                localStorage.setItem('hub_token', tokenFromUrl);
+                window.history.replaceState({}, '', window.location.pathname);
+            }
+
+            // 2. Verifica se tem token válido
+            const token = localStorage.getItem('hub_token');
+            if (!token) {
+                window.location.href = HUB_URL;
+                return;
+            }
+
+            try {
+                const res = await fetch(`${BACKEND}/api/auth/validate`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                if (!res.ok) throw new Error('inválido');
+            } catch {
+                localStorage.removeItem('hub_token');
+                window.location.href = HUB_URL;
+            }
+        })();
+    </script>
+
     <!-- Cabeçalho e Controles Unificados -->
     <header class="w-full max-w-5xl bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-wrap lg:flex-nowrap justify-between items-center gap-4 mb-4 relative">
 
-        <!-- Logo e Novo Projeto (Esquerda) -->
         <div class="flex flex-shrink-0 items-center justify-between w-full lg:w-auto gap-4 lg:gap-6 z-10">
             <div class="flex items-center gap-3">
                 <div class="bg-amber-500 text-white p-2 rounded-lg">
@@ -89,10 +106,7 @@
             </button>
         </div>
 
-
-        <!-- Demais Controles (Direita) -->
         <div class="flex flex-wrap items-center justify-center lg:justify-end gap-2 flex-shrink-0 order-2 lg:order-none w-full lg:w-auto z-10">
-            <!-- Controles de Zoom -->
             <div class="flex items-center bg-slate-50 border border-slate-200 rounded-lg p-1 shadow-inner h-[36px]">
                 <button id="zoom-out" class="px-2 py-1 text-slate-600 hover:bg-white hover:shadow rounded text-[11px] font-bold disabled:opacity-50 transition-all h-full" disabled>🔍 -</button>
                 <div class="w-px h-4 bg-slate-200 mx-0.5"></div>
@@ -124,14 +138,12 @@
         </div>
     </header>
 
-    <!-- Barra de Indicadores (Resumo) -->
+    <!-- Barra de Indicadores -->
     <div class="w-full max-w-5xl grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
         <div class="bg-white border-2 border-emerald-100 rounded-xl p-3 flex items-center shadow-sm">
-            <div class="bg-emerald-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-black text-xs mr-3"
-                id="count-installed">0</div>
+            <div class="bg-emerald-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-black text-xs mr-3" id="count-installed">0</div>
             <div>
-                <p class="text-[9px] font-bold text-emerald-600 uppercase tracking-wider mb-0.5">Qtd. Postes (Botão Esq)
-                </p>
+                <p class="text-[9px] font-bold text-emerald-600 uppercase tracking-wider mb-0.5">Qtd. Postes (Botão Esq)</p>
                 <div class="flex items-baseline gap-1.5">
                     <span class="text-[10px] text-slate-500 font-medium">Instalado =</span>
                     <span class="text-base font-black text-slate-800 leading-none" id="val-installed">0,00 US</span>
@@ -140,11 +152,9 @@
         </div>
 
         <div class="bg-white border-2 border-orange-100 rounded-xl p-3 flex items-center shadow-sm">
-            <div class="bg-orange-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-black text-xs mr-3"
-                id="count-modified">0</div>
+            <div class="bg-orange-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-black text-xs mr-3" id="count-modified">0</div>
             <div>
-                <p class="text-[9px] font-bold text-orange-600 uppercase tracking-wider mb-0.5">Qtd. Postes (Botão Dir)
-                </p>
+                <p class="text-[9px] font-bold text-orange-600 uppercase tracking-wider mb-0.5">Qtd. Postes (Botão Dir)</p>
                 <div class="flex items-baseline gap-1.5">
                     <span class="text-[10px] text-slate-500 font-medium">Modificado =</span>
                     <span class="text-base font-black text-slate-800 leading-none" id="val-modified">0,00 US</span>
@@ -153,11 +163,9 @@
         </div>
 
         <div class="bg-slate-900 border-2 border-slate-800 rounded-xl p-3 flex items-center shadow-md">
-            <div class="bg-white text-slate-900 rounded-full w-8 h-8 flex items-center justify-center font-black text-xs mr-3"
-                id="count-total">0</div>
+            <div class="bg-white text-slate-900 rounded-full w-8 h-8 flex items-center justify-center font-black text-xs mr-3" id="count-total">0</div>
             <div>
-                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Total Geral
-                    (Ctrl+CLick=Desfazer)</p>
+                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Total Geral (Ctrl+CLick=Desfazer)</p>
                 <div class="flex items-baseline gap-1.5">
                     <span class="text-[10px] text-slate-400 font-medium">Soma Total =</span>
                     <span class="text-base font-black text-white leading-none" id="val-total">0,00 US</span>
@@ -166,28 +174,26 @@
         </div>
     </div>
 
-    <!-- Área de Upload (Mostrada Inicialmente) -->
+    <!-- Área de Upload -->
     <div id="upload-area" class="w-full max-w-5xl flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-2xl bg-white p-12 transition-all hover:bg-slate-50 hover:border-amber-400 min-h-[400px]">
         <div class="bg-amber-100 text-amber-600 p-4 rounded-full mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-upload-cloud"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></svg>
         </div>
         <h3 class="text-lg font-bold text-slate-700 mb-2">Selecione o Projeto (PDF)</h3>
         <p class="text-sm text-slate-500 mb-6 text-center max-w-sm">Para começar a numerar os postes, escolha o documento PDF do projeto em seu computador.</p>
-        
         <div class="relative overflow-hidden bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg shadow-sm transition-all flex items-center h-[44px] px-6 cursor-pointer">
             <span class="mr-2">Escolher Arquivo</span>
             <input type="file" id="file-input" accept="application/pdf" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
         </div>
     </div>
 
-    <!-- Área de Visualização do PDF (Oculta Inicialmente) -->
+    <!-- Área de Visualização do PDF -->
     <div id="pdf-wrapper" class="hidden">
         <canvas id="pdf-canvas"></canvas>
         <canvas id="overlay-canvas"></canvas>
     </div>
 
     <script>
-        // Configurar o Worker do PDF.js
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
         let pdfDoc = null;
@@ -196,8 +202,6 @@
         let pageNumPending = null;
         let originalPdfBytes = null;
         let currentScale = 1.0;
-
-        // Cada ponto: { page, pdfX, pdfY, label, type: 'installed'|'modified' }
         let points = [];
         let poleCounter = 1;
 
@@ -217,7 +221,6 @@
         const zoomInBtn = document.getElementById('zoom-in');
         const zoomOutBtn = document.getElementById('zoom-out');
 
-        // Elementos de resumo
         const countInstalled = document.getElementById('count-installed');
         const countModified = document.getElementById('count-modified');
         const countTotal = document.getElementById('count-total');
@@ -225,7 +228,6 @@
         const valModified = document.getElementById('val-modified');
         const valTotal = document.getElementById('val-total');
 
-        // ---- Atualiza barra de resumo ----
         function updateSummary() {
             const installed = points.filter(p => p.type === 'installed').length;
             const modified = points.filter(p => p.type === 'modified').length;
@@ -242,9 +244,8 @@
             valTotal.textContent = vTot.toFixed(2).replace('.', ',') + ' US';
         }
 
-        // ---- Novos Botoes ----
         btnBack.addEventListener('click', () => {
-            window.location.href = '/hub';
+            window.location.href = 'https://hub-sistemas-production.up.railway.app';
         });
 
         btnNew.addEventListener('click', () => {
@@ -252,7 +253,6 @@
                 if (!confirm('Deseja iniciar um novo projeto? Todos os pontos marcados serão perdidos.')) return;
             }
 
-            // Resetar estado
             pdfDoc = null;
             pageNum = 1;
             points = [];
@@ -260,7 +260,6 @@
             originalPdfBytes = null;
             fileInput.value = '';
 
-            // Limpar canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
             canvas.width = 0;
@@ -268,7 +267,6 @@
             overlayCanvas.width = 0;
             overlayCanvas.height = 0;
 
-            // Atualizar UI
             document.getElementById('pdf-wrapper').classList.add('hidden');
             document.getElementById('upload-area').classList.remove('hidden');
             updateSummary();
@@ -280,7 +278,6 @@
             zoomOutBtn.disabled = true;
         });
 
-        // ---- Upload de arquivo ----
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file || file.type !== 'application/pdf') {
@@ -315,13 +312,12 @@
             fileReader.readAsArrayBuffer(file);
         });
 
-        // ---- Renderização ----
         function renderPage(num, adjustScale = false) {
             pageRendering = true;
             pdfDoc.getPage(num).then(page => {
                 if (adjustScale) {
                     const unscaledViewport = page.getViewport({ scale: 1.0 });
-                    const containerWidth = window.innerWidth * 0.95; // Ocupar 95% da tela
+                    const containerWidth = window.innerWidth * 0.95;
                     currentScale = containerWidth / unscaledViewport.width;
                     if (currentScale > 2.5) currentScale = 2.5;
                     if (currentScale < 0.5) currentScale = 0.5;
@@ -368,7 +364,6 @@
             queueRenderPage(pageNum);
         });
 
-        // ---- Desenho do Overlay com caixas coloridas ----
         function drawOverlay() {
             overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
             overlayCtx.font = "bold 13px Inter, sans-serif";
@@ -385,28 +380,22 @@
 
                 const padX = 5, padY = 4;
                 const boxW = textW + padX * 2;
-                const boxH = 20; // Um pouco maior no novo visual
+                const boxH = 20;
 
-                // Cor da caixa: verde para instalado, laranja para modificado
-                overlayCtx.fillStyle = pt.type === 'installed' ? 'rgba(16, 185, 129, 0.95)' : 'rgba(249, 115, 22, 0.95)'; // Tailwind colors
+                overlayCtx.fillStyle = pt.type === 'installed' ? 'rgba(16, 185, 129, 0.95)' : 'rgba(249, 115, 22, 0.95)';
 
                 overlayCtx.beginPath();
-                overlayCtx.roundRect(x, y - boxH, boxW, boxH, 4); // Bordas arredondadas
+                overlayCtx.roundRect(x, y - boxH, boxW, boxH, 4);
                 overlayCtx.fill();
 
-                // Texto branco dentro da caixa
                 overlayCtx.fillStyle = '#ffffff';
                 overlayCtx.fillText(text, x + padX, y - boxH / 2);
             });
         }
 
-        // ---- Interação com o Mouse ----
-
-        // Clique Esquerdo: Instalado (verde) OU Ctrl+Esq = Desfazer
         overlayCanvas.addEventListener('click', (e) => {
             if (!pdfDoc || !currentViewport) return;
 
-            // Ctrl+Click = Desfazer
             if (e.ctrlKey || e.metaKey) {
                 if (points.length === 0) return;
                 points.pop();
@@ -431,7 +420,6 @@
             updateSummary();
         });
 
-        // Clique Direito: Modificado (laranja)
         overlayCanvas.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             if (!pdfDoc || !currentViewport) return;
@@ -451,7 +439,6 @@
             updateSummary();
         });
 
-        // ---- Exportação PDF (saída INALTERADA — Helvetica 7 preto) ----
         downloadBtn.addEventListener('click', async () => {
             if (!originalPdfBytes || points.length === 0) {
                 alert("Nenhuma marcação foi feita no documento ainda.");
@@ -497,26 +484,6 @@
                 downloadBtn.disabled = false;
             }
         });
-
-    </script>
-    <!-- Script de Teste do Novo Backend -->
-    <script>
-        // Quando configurar no Railway, substitua pela URL gerada para o Backend
-        const BACKEND_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-            ? 'http://localhost:3000' 
-            : 'https://numerar-postes-app-production.up.railway.app'; // URL real do seu backend no Railway
-
-        async function testarBackend() {
-            try {
-                const response = await fetch(`${BACKEND_URL}/api/health`);
-                const data = await response.json();
-                console.log('✅ Conexão com Backend Bem-Sucedida:', data);
-            } catch (err) {
-                console.error('❌ Erro na Conexão com Backend (Pode ser CORS ou a API está offline):', err);
-            }
-        }
-        
-        window.addEventListener('load', testarBackend);
     </script>
 </body>
 
