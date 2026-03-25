@@ -1,13 +1,12 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 const { Pool } = require('pg');
-
 const app = express();
 const port = process.env.PORT || 3000;
 
 // Configuração do CORS
-// O Railway exige CORS para que o frontend (em outro domínio) possa acessar
 app.use(cors({
     origin: process.env.FRONTEND_URL || '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -42,6 +41,22 @@ app.get('/api/health', async (req, res) => {
     } catch (err) {
         console.error('Erro de BD:', err);
         res.status(500).json({ status: "Error", message: err.message });
+    }
+});
+
+// =============================
+// VALIDAÇÃO DE TOKEN DO HUB
+// =============================
+app.get('/api/auth/validate', (req, res) => {
+    const auth = req.headers.authorization;
+    if (!auth) return res.status(401).json({ error: 'Token ausente' });
+
+    const token = auth.split(' ')[1];
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        res.json({ ok: true, user: decoded });
+    } catch (err) {
+        res.status(401).json({ error: 'Token inválido ou expirado' });
     }
 });
 
