@@ -15,12 +15,18 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Pool do banco do HUB — usado para validar token_version
+// Pool do banco PRÓPRIO do app — rotas de funcionalidade
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: process.env.NODE_ENV === 'production'
         ? { rejectUnauthorized: false }
         : false
+});
+
+// Pool do banco do HUB — usado APENAS para validar token_version
+const hubPool = new Pool({
+    connectionString: process.env.HUB_DATABASE_URL,
+    ssl: { rejectUnauthorized: false }
 });
 
 // Rotas de Teste
@@ -58,7 +64,7 @@ app.get('/api/auth/validate', async (req, res) => {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
         // Consulta token_version atual no banco do hub
-        const result = await pool.query(
+        const result = await hubPool.query(
             `SELECT token_version FROM users WHERE id = $1`,
             [decoded.user_id]
         );
