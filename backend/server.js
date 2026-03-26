@@ -7,11 +7,19 @@ const jwt = require('jsonwebtoken');
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Configuração do CORS
+const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    /\.railway\.app$/
+];
 app.use(cors({
-    origin: process.env.FRONTEND_URL || '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    origin: function(origin, callback) {
+        if (!origin) return callback(null, true);
+        const isAllowed = allowedOrigins.some(o => o instanceof RegExp ? o.test(origin) : o === origin);
+        if (isAllowed) callback(null, true);
+        else callback(new Error('Bloqueado pela política de CORS'));
+    },
+    credentials: true
 }));
 app.use(express.json());
 
