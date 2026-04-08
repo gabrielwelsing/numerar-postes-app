@@ -51,28 +51,38 @@
                 ? 'http://localhost:3000'
                 : 'https://numerar-postes-app-production-30dd.up.railway.app';
 
-            // 1. Pega token da URL se vier do HUB
             const params = new URLSearchParams(window.location.search);
             const tokenFromUrl = params.get('token');
             if (tokenFromUrl) {
-                localStorage.setItem('hub_token', tokenFromUrl);
+                localStorage.setItem('token', tokenFromUrl);
                 window.history.replaceState({}, '', window.location.pathname);
             }
 
-            // 2. Verifica se tem token válido
-            const token = localStorage.getItem('hub_token');
-            if (!token) {
-                window.location.href = HUB_URL;
-                return;
-            }
+            const token = localStorage.getItem('token');
+            if (!token) { window.location.href = HUB_URL; return; }
 
             try {
                 const res = await fetch(`${BACKEND}/api/auth/validate`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 if (!res.ok) throw new Error('inválido');
+
+                const data = await res.json();
+                const user = data.user || {};
+                const role = user.role || '';
+                const permissoes = user.permissoes || {};
+                const SUPER_ADMINS = ['yurifernandesjf1@gmail.com', 'gabriel.welsing@gmail.com'];
+                const isSuperAdmin = SUPER_ADMINS.includes(user.email || '');
+
+                if (!isSuperAdmin && role !== 'admin') {
+                    if (permissoes['numerar-poste'] !== 'liberado') {
+                        localStorage.removeItem('token');
+                        window.location.href = HUB_URL;
+                        return;
+                    }
+                }
             } catch {
-                localStorage.removeItem('hub_token');
+                localStorage.removeItem('token');
                 window.location.href = HUB_URL;
             }
         })();
