@@ -10,6 +10,7 @@ const port = process.env.PORT || 3000;
 const allowedOrigins = [
     'http://localhost:3000',
     'http://localhost:5173',
+    'https://www.sup-ia.com',
     /\.railway\.app$/
 ];
 app.use(cors({
