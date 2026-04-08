@@ -12,6 +12,7 @@ const allowedOrigins = [
     'http://localhost:5173',
     'https://www.sup-ia.com',
     'https://www.numposte.sup-ia.com',
+    'https://www.hub.sup-ia.com',
     /\.railway\.app$/
 ];
 app.use(cors({
